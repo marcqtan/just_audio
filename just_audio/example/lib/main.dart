@@ -29,12 +29,12 @@ class _AudioState extends State<Audio> {
       children: [
         AudioSource.uri(
           Uri.parse(
-            'asset:///assets/audio/A_02_HM2011.mp3',
+            'asset:///audio/A_02_HM2011.mp3',
           ),
         ),
         AudioSource.uri(
           Uri.parse(
-            'asset:///assets/audio/1A_04.mp3',
+            'asset:///audio/1A_04.mp3',
           ),
         ),
       ],
