@@ -1,98 +1,169 @@
-// This is a minimal example demonstrating a play/pause button and a seek bar.
-// More advanced examples demonstrating other features can be found in the same
-// directory as this example in the GitHub repository.
+import 'dart:math';
 
-import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_example/common.dart';
 import 'package:rxdart/rxdart.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(
+      Audio(),
+    );
 
-class MyApp extends StatefulWidget {
+class Audio extends StatefulWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  _AudioState createState() => _AudioState();
 }
 
-class _MyAppState extends State<MyApp> {
-  final AudioPlayer _player = AudioPlayer();
+class _AudioState extends State<Audio> {
+  late AudioPlayer player;
+  bool playing = false;
+
+  TextEditingController start = TextEditingController();
+  TextEditingController end = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.black,
-    ));
-    _init();
-  }
-
-  Future<void> _init() async {
-    // Inform the operating system of our app's audio attributes etc.
-    // We pick a reasonable default for an app that plays speech.
-    final session = await AudioSession.instance;
-    await session.configure(AudioSessionConfiguration.speech());
-    // Listen to errors during playback.
-    _player.playbackEventStream.listen((event) {},
-        onError: (Object e, StackTrace stackTrace) {
-      print('A stream error occurred: $e');
-    });
-    // Try to load audio from a source and catch any errors.
-    try {
-      await _player.setAudioSource(AudioSource.uri(Uri.parse(
-          "https://s3.amazonaws.com/scifri-episodes/scifri20181123-episode.mp3")));
-    } catch (e) {
-      print("Error loading audio source: $e");
-    }
+    final _playlist = ConcatenatingAudioSource(
+      children: [
+        AudioSource.uri(
+          Uri.parse(
+            'asset:///assets/audio/A_02_HM2011.mp3',
+          ),
+        ),
+        AudioSource.uri(
+          Uri.parse(
+            'asset:///assets/audio/1A_04.mp3',
+          ),
+        ),
+      ],
+    );
+    player = AudioPlayer();
+    player.setAudioSource(_playlist);
   }
 
   @override
   void dispose() {
-    // Release decoders and buffers back to the operating system making them
-    // available for other apps to use.
-    _player.dispose();
     super.dispose();
+    player.dispose();
   }
 
-  /// Collects the data useful for displaying in a seek bar, using a handy
-  /// feature of rx_dart to combine the 3 streams of interest into one.
   Stream<PositionData> get _positionDataStream =>
       Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
-          _player.positionStream,
-          _player.bufferedPositionStream,
-          _player.durationStream,
+          player.positionStream,
+          player.bufferedPositionStream,
+          player.durationStream,
           (position, bufferedPosition, duration) => PositionData(
               position, bufferedPosition, duration ?? Duration.zero));
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Display play/pause button and volume/speed sliders.
-              ControlButtons(_player),
-              // Display seek bar. Using StreamBuilder, this widget rebuilds
-              // each time the position, buffered position or duration changes.
-              StreamBuilder<PositionData>(
-                stream: _positionDataStream,
-                builder: (context, snapshot) {
-                  final positionData = snapshot.data;
-                  return SeekBar(
-                    duration: positionData?.duration ?? Duration.zero,
-                    position: positionData?.position ?? Duration.zero,
-                    bufferedPosition:
-                        positionData?.bufferedPosition ?? Duration.zero,
-                    onChangeEnd: _player.seek,
-                  );
-                },
-              ),
-            ],
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              // crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ControlButtons(player),
+                StreamBuilder<PositionData>(
+                  stream: _positionDataStream,
+                  builder: (context, snapshot) {
+                    final positionData = snapshot.data;
+                    return SeekBar(
+                      duration: positionData?.duration ?? Duration.zero,
+                      position: positionData?.position ?? Duration.zero,
+                      bufferedPosition:
+                          positionData?.bufferedPosition ?? Duration.zero,
+                      onChangeEnd: player.seek,
+                    );
+                  },
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      margin: EdgeInsets.only(
+                        left: 20,
+                        top: 20,
+                      ),
+                      width: 70,
+                      child: TextField(
+                        controller: start,
+                        decoration: InputDecoration(
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              5,
+                            ),
+                          ),
+                          labelText: 'Start',
+                        ),
+                      ),
+                    ),
+                    Container(
+                      margin: EdgeInsets.only(
+                        left: 20,
+                        top: 20,
+                      ),
+                      width: 70,
+                      child: TextField(
+                        controller: end,
+                        decoration: InputDecoration(
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              5,
+                            ),
+                          ),
+                          labelText: 'End',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: 20,
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    print(start.text);
+                    player.setClip(
+                      start: start.text.isEmpty
+                          ? null
+                          : Duration(seconds: int.parse(start.text)),
+                      end: end.text == '0' || end.text.isEmpty
+                          ? null
+                          : Duration(
+                              seconds: int.parse(end.text),
+                            ),
+                    );
+                  },
+                  child: Text('Apply AB'),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        player.setLoopMode(LoopMode.all);
+                      },
+                      child: Text('Turn On Loop'),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        player.setLoopMode(LoopMode.off);
+                      },
+                      child: Text('Turn Off Loop'),
+                    )
+                  ],
+                )
+              ],
+            ),
           ),
         ),
       ),
@@ -100,7 +171,6 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-/// Displays the play/pause button and volume/speed sliders.
 class ControlButtons extends StatelessWidget {
   final AudioPlayer player;
 
@@ -111,6 +181,29 @@ class ControlButtons extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        IconButton(
+          onPressed: () {
+            player.seekToPrevious();
+          },
+          icon: Icon(
+            Icons.skip_previous,
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            if (player.playing) {
+              final currentPos = player.position;
+              final nextPosition = currentPos.inMilliseconds - 5000;
+              // don't seek less that 0
+              final currentPositionCapped = Duration(
+                milliseconds: max(0, nextPosition),
+              );
+
+              player.seek(currentPositionCapped);
+            }
+          },
+          icon: Icon(Icons.replay_5),
+        ),
         // Opens volume slider dialog
         IconButton(
           icon: Icon(Icons.volume_up),
@@ -185,6 +278,29 @@ class ControlButtons extends StatelessWidget {
                 onChanged: player.setSpeed,
               );
             },
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            if (player.playing && player.duration != null) {
+              final totalDuration = player.duration!.inMilliseconds;
+              final nextPosition = player.position.inMilliseconds + 5000;
+              // don't seek more that song duration
+              final currentPositionCapped = Duration(
+                milliseconds: min(totalDuration, nextPosition),
+              );
+
+              player.seek(currentPositionCapped);
+            }
+          },
+          icon: Icon(Icons.forward_5),
+        ),
+        IconButton(
+          onPressed: () {
+            player.seekToNext();
+          },
+          icon: Icon(
+            Icons.skip_next,
           ),
         ),
       ],
