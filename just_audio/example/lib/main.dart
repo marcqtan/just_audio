@@ -181,6 +181,29 @@ class ControlButtons extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
+          onPressed: () async {
+            if (player.currentIndex! > 0) {
+              final newSource = ClippingAudioSource(
+                start: null,
+                end: null,
+                child: AudioSource.uri(
+                  Uri.parse(audios[player.currentIndex!]['path']!),
+                ),
+              );
+              final index = player.currentIndex;
+              await _playlist.insert(index!, newSource);
+              await _playlist.removeAt(player.currentIndex!);
+              if (player.loopMode == LoopMode.one) {
+                player.setLoopMode(LoopMode.off);
+              }
+              player.seekToPrevious();
+            }
+          },
+          icon: Icon(
+            Icons.skip_previous,
+          ),
+        ),
+        IconButton(
           onPressed: () {
             if (player.playing) {
               final currentPos = player.position;
@@ -285,6 +308,29 @@ class ControlButtons extends StatelessWidget {
             }
           },
           icon: Icon(Icons.forward_5),
+        ),
+        IconButton(
+          onPressed: () async {
+            if (player.currentIndex! < audios.length - 1) {
+              final newSource = ClippingAudioSource(
+                start: null,
+                end: null,
+                child: AudioSource.uri(
+                  Uri.parse(audios[player.currentIndex!]['path']!),
+                ),
+              );
+              final index = player.currentIndex;
+              await _playlist.insert(index!, newSource);
+              await _playlist.removeAt(player.currentIndex!);
+              if (player.loopMode == LoopMode.one) {
+                player.setLoopMode(LoopMode.off);
+              }
+              player.seekToNext();
+            }
+          },
+          icon: Icon(
+            Icons.skip_next,
+          ),
         ),
       ],
     );
