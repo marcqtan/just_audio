@@ -156,41 +156,9 @@ class _AudioState extends State<Audio> {
                     await player.setLoopMode(LoopMode.one);
 
                     await player.play();
-                    // player.setClip(
-                    //   start: start.text.isEmpty
-                    //       ? null
-                    //       : Duration(seconds: int.parse(start.text)),
-                    // end: end.text == '0' || end.text.isEmpty
-                    //     ? null
-                    //     : Duration(
-                    //         seconds: int.parse(end.text),
-                    //       ),
-                    //   source: _playlist.children[0] as UriAudioSource,
-                    // );
-                    // final newSource = ClippingAudioSource(child: _playlist.children[0].);
                   },
-                  child: Text('Apply AB Repeat'),
+                  child: Text('Apply A-B Repeat'),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        player.setLoopMode(LoopMode.all);
-                      },
-                      child: Text('Loop ALL'),
-                    ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        player.setLoopMode(LoopMode.off);
-                      },
-                      child: Text('Loop Off'),
-                    )
-                  ],
-                )
               ],
             ),
           ),
@@ -212,29 +180,6 @@ class ControlButtons extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          onPressed: () async {
-            if (player.currentIndex! > 0) {
-              final newSource = ClippingAudioSource(
-                start: null,
-                end: null,
-                child: AudioSource.uri(
-                  Uri.parse(audios[player.currentIndex!]['path']!),
-                ),
-              );
-              final index = player.currentIndex;
-              await _playlist.insert(index!, newSource);
-              await _playlist.removeAt(player.currentIndex!);
-              if (player.loopMode == LoopMode.one) {
-                player.setLoopMode(LoopMode.off);
-              }
-              player.seekToPrevious();
-            }
-          },
-          icon: Icon(
-            Icons.skip_previous,
-          ),
-        ),
         IconButton(
           onPressed: () {
             if (player.playing) {
@@ -340,29 +285,6 @@ class ControlButtons extends StatelessWidget {
             }
           },
           icon: Icon(Icons.forward_5),
-        ),
-        IconButton(
-          onPressed: () async {
-            if (player.currentIndex! < audios.length - 1) {
-              final newSource = ClippingAudioSource(
-                start: null,
-                end: null,
-                child: AudioSource.uri(
-                  Uri.parse(audios[player.currentIndex!]['path']!),
-                ),
-              );
-              final index = player.currentIndex;
-              await _playlist.insert(index!, newSource);
-              await _playlist.removeAt(player.currentIndex!);
-              if (player.loopMode == LoopMode.one) {
-                player.setLoopMode(LoopMode.off);
-              }
-              player.seekToNext();
-            }
-          },
-          icon: Icon(
-            Icons.skip_next,
-          ),
         ),
       ],
     );
